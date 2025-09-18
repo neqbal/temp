@@ -3,7 +3,7 @@ Cryptographic operations for PyTunnel.
 """
 
 import base64
-from nacl.public import PrivateKey, PublicKey
+from nacl.public import PrivateKey, PublicKey, Box
 from hkdf import Hkdf
 
 def load_key(filepath):
@@ -16,9 +16,6 @@ def generate_ephemeral_keys():
     private_key = PrivateKey.generate()
     return private_key, private_key.public_key
 
-from nacl.public import PublicKey
-from hkdf import Hkdf
-
 def derive_keys(static_privkey, remote_static_pubkey, ephemeral_privkey, remote_ephemeral_pubkey, is_client):
     """
     Derives symmetric keys using a Noise-like protocol.
@@ -27,9 +24,9 @@ def derive_keys(static_privkey, remote_static_pubkey, ephemeral_privkey, remote_
     remote_static_pubkey = PublicKey(remote_static_pubkey)
     remote_ephemeral_pubkey = PublicKey(remote_ephemeral_pubkey)
 
-    dh1 = static_privkey.exchange(remote_static_pubkey)
-    dh2 = ephemeral_privkey.exchange(remote_ephemeral_pubkey)
-    dh3 = static_privkey.exchange(remote_ephemeral_pubkey)
+    dh1 = Box(static_privkey, remote_static_pubkey).shared_key()
+    dh2 = Box(ephemeral_privkey, remote_ephemeral_pubkey).shared_key()
+    dh3 = Box(static_privkey, remote_ephemeral_pubkey).shared_key()
 
     # Concatenate DH results to form IKM
     ikm = dh1 + dh2 + dh3
