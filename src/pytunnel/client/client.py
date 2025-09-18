@@ -12,9 +12,15 @@ class Client:
         # TODO: Load configuration (server addr, port, keys)
         self.server_addr = server_addr
         self.config = config
-        self.static_privkey = PrivateKey.generate() # TODO: Load from config
-        self.static_pubkey = self.static_privkey.public_key
-        self.server_static_pubkey = None # TODO: Load from config
+        try:
+            self.static_privkey = PrivateKey(crypto.load_key('configs/keys/client.key'))
+            self.static_pubkey = self.static_privkey.public_key
+            self.server_static_pubkey = PublicKey(crypto.load_key('configs/keys/server.pub'))
+            log.log_info("Client and server keys loaded successfully.")
+        except FileNotFoundError as e:
+            log.log_error(f"Key file not found: {e.filename}")
+            log.log_error("Please run 'python3 scripts/genkeys.py --out-dir configs/keys --name [server/client]' and ensure server.pub is copied to the client.")
+            exit(1)
         self.tx_key = None
         self.rx_key = None
         # TODO: Initialize ReplayWindow

@@ -21,8 +21,10 @@ def derive_keys(static_privkey, remote_static_pubkey, ephemeral_privkey, remote_
     Derives symmetric keys using a Noise-like protocol.
     """
     # Perform three X25519 DH exchanges
-    remote_static_pubkey = PublicKey(remote_static_pubkey)
-    remote_ephemeral_pubkey = PublicKey(remote_ephemeral_pubkey)
+    if not isinstance(remote_static_pubkey, PublicKey):
+        remote_static_pubkey = PublicKey(remote_static_pubkey)
+    if not isinstance(remote_ephemeral_pubkey, PublicKey):
+        remote_ephemeral_pubkey = PublicKey(remote_ephemeral_pubkey)
 
     dh1 = Box(static_privkey, remote_static_pubkey).shared_key()
     dh2 = Box(ephemeral_privkey, remote_ephemeral_pubkey).shared_key()

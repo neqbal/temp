@@ -15,7 +15,13 @@ class Server:
         self.config = config
         self.cookie_manager = CookieManager(os.urandom(32)) # TODO: Use a persistent secret
         self.sessions = {}
-        self.static_privkey = PrivateKey.generate() # TODO: Load from config
+        try:
+            self.static_privkey = PrivateKey(crypto.load_key('configs/keys/server.key'))
+            log.log_info("Server static key loaded successfully.")
+        except FileNotFoundError:
+            log.log_error("Server key file not found!")
+            log.log_error("Please run 'python3 scripts/genkeys.py --out-dir configs/keys --name server' to generate keys.")
+            exit(1)
 
     def run(self):
         """Starts the server and enters the main event loop.""" 
