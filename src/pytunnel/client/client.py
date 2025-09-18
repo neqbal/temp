@@ -7,9 +7,9 @@ from ..common import proto
 from nacl.public import PrivateKey
 
 class Client:
-    def __init__(self, config):
+    def __init__(self, config, server_addr):
         # TODO: Load configuration (server addr, port, keys)
-        self.server_addr = ('127.0.0.1', 51820) # TODO: Load from config
+        self.server_addr = server_addr
         self.config = config
         self.static_privkey = PrivateKey.generate() # TODO: Load from config
         self.static_pubkey = self.static_privkey.public_key

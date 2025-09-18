@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from ..server.server import Server
 
 def main():
     """
@@ -8,9 +9,8 @@ def main():
     # TODO: Set up logging
     # TODO: Parse command-line arguments (--config)
     # TODO: Load the configuration file
-    # TODO: Create a Server instance
-    # TODO: Run the server
-    print("TODO: Server CLI not implemented.")
+    server = Server(config=None)
+    server.run()
 
 if __name__ == "__main__":
     main()
