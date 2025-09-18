@@ -3,3 +3,4 @@ pynacl
 scapy
 pytest
 pyyaml
+hkdf

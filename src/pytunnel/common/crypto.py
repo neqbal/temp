@@ -2,25 +2,49 @@
 Cryptographic operations for PyTunnel.
 """
 
+import base64
+from nacl.public import PrivateKey, PublicKey
+from hkdf import Hkdf
+
 def load_key(filepath):
     """Loads a base64-encoded key from a file."""
-    # TODO: Implement key loading from file
-    pass
+    with open(filepath, 'r') as f:
+        return base64.b64decode(f.read())
 
 def generate_ephemeral_keys():
     """Generates a new ephemeral X25519 key pair."""
-    # TODO: Implement ephemeral key generation
-    pass
+    private_key = PrivateKey.generate()
+    return private_key, private_key.public_key
+
+from nacl.public import PublicKey
+from hkdf import Hkdf
 
 def derive_keys(static_privkey, remote_static_pubkey, ephemeral_privkey, remote_ephemeral_pubkey, is_client):
     """
     Derives symmetric keys using a Noise-like protocol.
     """
-    # TODO: Implement the three X25519 DH exchanges
-    # TODO: Concatenate DH results to form IKM
-    # TODO: Use HKDF to derive tx and rx keys
-    # TODO: Return tx_key, rx_key based on is_client flag
-    pass
+    # Perform three X25519 DH exchanges
+    remote_static_pubkey = PublicKey(remote_static_pubkey)
+    remote_ephemeral_pubkey = PublicKey(remote_ephemeral_pubkey)
+
+    dh1 = static_privkey.exchange(remote_static_pubkey)
+    dh2 = ephemeral_privkey.exchange(remote_ephemeral_pubkey)
+    dh3 = static_privkey.exchange(remote_ephemeral_pubkey)
+
+    # Concatenate DH results to form IKM
+    ikm = dh1 + dh2 + dh3
+
+    # Use HKDF to derive tx and rx keys
+    hkdf = Hkdf(b'', ikm) # No salt
+    keys = hkdf.expand(b'', 64) # 64 bytes for two 32-byte keys
+
+    tx_key = keys[:32]
+    rx_key = keys[32:]
+
+    if is_client:
+        return tx_key, rx_key
+    else:
+        return rx_key, tx_key
 
 class Encryptor:
     """Encrypts outgoing packets."""

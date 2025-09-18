@@ -2,22 +2,28 @@
 Stateless cookie generation and verification for DDoS mitigation.
 """
 
+import hmac
+import os
+import time
+
 class CookieManager:
     def __init__(self, secret):
-        # TODO: Store the cookie secret
-        pass
+        self.secret = secret
 
     def generate_cookie(self, client_addr):
         """Generates a stateless cookie for a client address."""
-        # TODO: Get current timestamp
-        # TODO: Create message to HMAC (e.g., ip:port:timestamp)
-        # TODO: Compute HMAC and return cookie and timestamp
-        pass
+        timestamp = int(time.time())
+        ip, port = client_addr
+        message = f'{ip}:{port}:{timestamp}'.encode('utf-8')
+        mac = hmac.new(self.secret, message, 'sha256').digest()
+        return mac, timestamp
 
-    def verify_cookie(self, cookie, timestamp, client_addr):
+    def verify_cookie(self, cookie, timestamp, client_addr, ttl=30):
         """Verifies a cookie from a client."""
-        # TODO: Check if timestamp is within TTL
-        # TODO: Regenerate the expected cookie
-        # TODO: Compare the received cookie with the expected one using hmac.compare_digest
-        # TODO: Return True or False
-        pass
+        if time.time() - timestamp > ttl:
+            return False # Expired
+        
+        ip, port = client_addr
+        message = f'{ip}:{port}:{timestamp}'.encode('utf-8')
+        expected_mac = hmac.new(self.secret, message, 'sha256').digest()
+        return hmac.compare_digest(cookie, expected_mac)
