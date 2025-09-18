@@ -1,7 +1,5 @@
-pycryptodome
-python-pytun
-scapy
-cryptography
+# PyTunnel Dependencies
 pynacl
+scapy
 pytest
 pyyaml

@@ -1,29 +1,42 @@
 #!/usr/bin/env python3
 import argparse
 import base64
+import os
 from nacl.public import PrivateKey
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate X25519 key pairs.")
-    parser.add_argument("--name", required=True, help="Name for the key files (e.g., server, client).")
-    parser.add_argument("--out-dir", default=".", help="Output directory for the key files.")
+    """
+    Generates and saves X25519 key pairs for PyTunnel.
+    """
+    parser = argparse.ArgumentParser(description="Generate X25519 key pairs for PyTunnel.")
+    parser.add_argument("--name", required=True, help="A name for the key files (e.g., 'server' or 'client').")
+    parser.add_argument("--out-dir", default=".", help="The directory to save the key files in.")
     args = parser.parse_args()
 
+    # Ensure the output directory exists
+    os.makedirs(args.out_dir, exist_ok=True)
+
+    # Generate the key pair
     private_key = PrivateKey.generate()
     public_key = private_key.public_key
 
-    priv_key_b64 = base64.b64encode(bytes(private_key)).decode('ascii')
-    pub_key_b64 = base64.b64encode(bytes(public_key)).decode('ascii')
+    # Base64 encode the keys for easy storage and transport
+    private_key_b64 = base64.b64encode(bytes(private_key)).decode('ascii')
+    public_key_b64 = base64.b64encode(bytes(public_key)).decode('ascii')
 
-    with open(f"{args.out_dir}/{args.name}.key", "w") as f:
-        f.write(priv_key_b64)
+    private_key_path = os.path.join(args.out_dir, f"{args.name}.key")
+    public_key_path = os.path.join(args.out_dir, f"{args.name}.pub")
 
-    with open(f"{args.out_dir}/{args.name}.pub", "w") as f:
-        f.write(pub_key_b64)
+    # Write the keys to their respective files
+    with open(private_key_path, 'w') as f:
+        f.write(private_key_b64)
 
-    print(f"Generated key pair for '{args.name}' in '{args.out_dir}/'")
-    print(f"  Private key: {args.out_dir}/{args.name}.key")
-    print(f"  Public key:  {args.out_dir}/{args.name}.pub")
+    with open(public_key_path, 'w') as f:
+        f.write(public_key_b64)
+
+    print(f"Successfully generated and saved keys for '{args.name}':")
+    print(f"  Private Key: {private_key_path}")
+    print(f"  Public Key:  {public_key_path}")
 
 if __name__ == "__main__":
     main()
