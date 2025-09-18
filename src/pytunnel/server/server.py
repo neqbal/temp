@@ -4,6 +4,7 @@ import struct
 from ..common import proto
 from ..common.cookie import CookieManager
 from ..common import crypto
+from ..common import log
 from .session import Session
 from nacl.public import PrivateKey
 
@@ -17,10 +18,10 @@ class Server:
         self.static_privkey = PrivateKey.generate() # TODO: Load from config
 
     def run(self):
-        """Starts the server and enters the main event loop."""
+        """Starts the server and enters the main event loop.""" 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(self.listen_addr)
-        print(f"Server listening on {self.listen_addr}")
+        log.log_info(f"Server listening on {self.listen_addr[0]}:{self.listen_addr[1]}")
 
         while True:
             payload, client_addr = sock.recvfrom(4096)
@@ -36,7 +37,7 @@ class Server:
                 self.handle_msg_init_with_cookie(payload, client_addr, sock)
             # TODO: Add other message handlers
         except (struct.error, IndexError):
-            print(f"Received malformed packet from {client_addr}")
+            log.log_error(f"Received malformed packet from {client_addr}")
 
 
     def handle_tun_packet(self):
@@ -50,26 +51,27 @@ class Server:
 
     def handle_msg_init(self, payload, client_addr, sock):
         """Handles an initial handshake message."""
-        print(f"Received MSG_INIT from {client_addr}")
+        log.log_received(f"MSG_INIT from {client_addr[0]}:{client_addr[1]}")
         try:
             eph_pubkey, static_pubkey = proto.unpack_msg_init(payload)
             cookie, timestamp = self.cookie_manager.generate_cookie(client_addr)
             response = proto.pack_msg_cookie_challenge(cookie, timestamp)
             sock.sendto(response, client_addr)
-            print(f"Sent MSG_COOKIE_CHALLENGE to {client_addr}")
+            log.log_sent(f"MSG_COOKIE_CHALLENGE to {client_addr[0]}:{client_addr[1]}")
         except struct.error:
-            print(f"Received malformed MSG_INIT from {client_addr}")
+            log.log_error(f"Received malformed MSG_INIT from {client_addr}")
 
 
     def handle_msg_init_with_cookie(self, payload, client_addr, sock):
         """Handles a handshake message that includes a cookie."""
-        print(f"Received MSG_INIT_WITH_COOKIE from {client_addr}")
+        log.log_received(f"MSG_INIT_WITH_COOKIE from {client_addr[0]}:{client_addr[1]}")
         try:
             cookie, timestamp, client_eph_pubkey, client_static_pubkey = proto.unpack_msg_init_with_cookie(payload)
             if not self.cookie_manager.verify_cookie(cookie, timestamp, client_addr):
-                print(f"Invalid cookie from {client_addr}")
+                log.log_error(f"Invalid cookie from {client_addr}")
                 return
 
+            log.log_info("Cookie verified successfully")
             # Cookie is valid, proceed with handshake
             server_eph_privkey, server_eph_pubkey = crypto.generate_ephemeral_keys()
 
@@ -83,14 +85,14 @@ class Server:
 
             session = Session(client_addr, tx_key, rx_key)
             self.sessions[client_addr] = session
-            print(f"Session created for {client_addr}")
+            log.log_info(f"Session created for {client_addr[0]}:{client_addr[1]}")
 
             response = proto.pack_msg_resp(bytes(server_eph_pubkey))
             sock.sendto(response, client_addr)
-            print(f"Sent MSG_RESP to {client_addr}")
+            log.log_sent(f"MSG_RESP to {client_addr[0]}:{client_addr[1]}")
 
         except (struct.error, IndexError):
-            print(f"Received malformed MSG_INIT_WITH_COOKIE from {client_addr}")
+            log.log_error(f"Received malformed MSG_INIT_WITH_COOKIE from {client_addr}")
 
 
     def handle_msg_data(self, payload, client_addr):
