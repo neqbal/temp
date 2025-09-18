@@ -1,0 +1,6 @@
+# Client Configuration
+server_addr: "127.0.0.1" # Replace with server's public IP
+server_port: 51820
+private_key_file: "configs/client.key"
+server_public_key_file: "configs/server.pub"
+tunnel_ip: "10.0.0.2/24"

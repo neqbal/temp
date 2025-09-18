@@ -1,0 +1,6 @@
+# Server Configuration
+listen_addr: "0.0.0.0"
+listen_port: 51820
+private_key_file: "configs/server.key"
+client_public_key_file: "configs/client.pub"
+tunnel_ip: "10.0.0.1/24"
