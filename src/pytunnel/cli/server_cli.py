@@ -6,10 +6,13 @@ def main():
     """
     Entry point for the PyTunnel server.
     """
+    parser = argparse.ArgumentParser(description="PyTunnel server.")
+    parser.add_argument("--vulnerable", action="store_true", help="Run in a vulnerable mode without DDoS protection (for testing).")
+    args = parser.parse_args()
+
     # TODO: Set up logging
-    # TODO: Parse command-line arguments (--config)
     # TODO: Load the configuration file
-    server = Server(config=None)
+    server = Server(config=None, vulnerable=args.vulnerable)
     server.run()
 
 if __name__ == "__main__":
