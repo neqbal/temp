@@ -153,6 +153,9 @@ class Server:
                 is_client=False
             )
 
+            log.log_info(f"Server TX key: {tx_key.hex()}")
+            log.log_info(f"Server RX key: {rx_key.hex()}")
+
             session = Session(client_addr, tx_key, rx_key)
             self.sessions[client_addr] = session
             log.log_info(f"Session created for {client_addr[0]}:{client_addr[1]}")
