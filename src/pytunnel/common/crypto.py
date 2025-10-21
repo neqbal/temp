@@ -26,8 +26,8 @@ def derive_keys(static_privkey, remote_static_pubkey, ephemeral_privkey, remote_
     if not isinstance(remote_ephemeral_pubkey, PublicKey):
         remote_ephemeral_pubkey = PublicKey(remote_ephemeral_pubkey)
 
-    dh1 = Box(static_privkey, remote_static_pubkey).shared_key()
-    dh2 = Box(ephemeral_privkey, remote_ephemeral_pubkey).shared_key()
+    dh1 = static_privkey.diffie_hellman(remote_static_pubkey)
+    dh2 = ephemeral_privkey.diffie_hellman(remote_ephemeral_pubkey)
     dh3 = Box(static_privkey, remote_ephemeral_pubkey).shared_key()
 
     # Concatenate DH results to form IKM

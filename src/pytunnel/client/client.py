@@ -112,9 +112,6 @@ class Client:
             is_client=True
         )
         
-        log.log_info(f"Client TX key: {self.tx_key.hex()}")
-        log.log_info(f"Client RX key: {self.rx_key.hex()}")
-
         self.encryptor = crypto.Encryptor(self.tx_key)
         self.decryptor = crypto.Decryptor(self.rx_key)
 
