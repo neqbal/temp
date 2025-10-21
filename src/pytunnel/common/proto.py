@@ -26,11 +26,15 @@ def unpack_msg_init(payload):
     _, eph_pubkey, static_pubkey = struct.unpack(MSG_INIT_FORMAT, payload)
     return eph_pubkey, static_pubkey
 
-# TODO: Add pack/unpack functions for all other message types:
-# - MSG_COOKIE_CHALLENGE
-# - MSG_INIT_WITH_COOKIE
-# - MSG_RESP
-# - MSG_DATA
+# MSG_DATA: header || encrypted_payload (variable length)
+
+def pack_msg_data(encrypted_payload):
+    """Packs a MSG_DATA message."""
+    return struct.pack('!B', MSG_TYPE_DATA) + encrypted_payload
+
+def unpack_msg_data(payload):
+    """Unpacks a MSG_DATA message."""
+    return payload[MSG_HEADER_SIZE:]
 
 # MSG_COOKIE_CHALLENGE: header || cookie (32 bytes) || timestamp (4 bytes)
 MSG_COOKIE_CHALLENGE_FORMAT = '!B32sI'

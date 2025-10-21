@@ -45,24 +45,30 @@ def derive_keys(static_privkey, remote_static_pubkey, ephemeral_privkey, remote_
     else:
         return rx_key, tx_key
 
+from nacl.secret import SecretBox
+import nacl.utils
+
 class Encryptor:
     """Encrypts outgoing packets."""
     def __init__(self, key):
-        # TODO: Initialize the AEAD cipher (e.g., ChaCha20-Poly1305)
-        pass
+        self.box = SecretBox(key)
 
-    def encrypt(self, plaintext, nonce):
-        """Encrypts and authenticates plaintext."""
-        # TODO: Implement encryption
-        pass
+    def encrypt(self, plaintext):
+        """Encrypts and authenticates plaintext. A random nonce is generated for each message."""
+        nonce = nacl.utils.random(SecretBox.NONCE_SIZE)
+        ciphertext = self.box.encrypt(plaintext, nonce)
+        # The nonce is prepended to the ciphertext. The first 24 bytes are the nonce.
+        return ciphertext
 
 class Decryptor:
     """Decrypts incoming packets."""
     def __init__(self, key):
-        # TODO: Initialize the AEAD cipher
-        pass
+        self.box = SecretBox(key)
 
-    def decrypt(self, ciphertext, nonce):
-        """Decrypts and verifies ciphertext."""
-        # TODO: Implement decryption
-        pass
+    def decrypt(self, ciphertext):
+        """Decrypts and verifies ciphertext. The nonce is extracted from the first 24 bytes."""
+        # The nonce is extracted from the beginning of the message
+        nonce = ciphertext[:SecretBox.NONCE_SIZE]
+        # The actual encrypted message is after the nonce
+        message = ciphertext[SecretBox.NONCE_SIZE:]
+        return self.box.decrypt(message, nonce)
