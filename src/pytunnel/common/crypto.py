@@ -28,10 +28,10 @@ def derive_keys(static_privkey, remote_static_pubkey, ephemeral_privkey, remote_
 
     dh1 = Box(static_privkey, remote_static_pubkey).shared_key()
     dh2 = Box(ephemeral_privkey, remote_ephemeral_pubkey).shared_key()
-    dh3 = Box(static_privkey, remote_ephemeral_pubkey).shared_key()
+    #dh3 = Box(static_privkey, remote_ephemeral_pubkey).shared_key()
 
     # Concatenate DH results to form IKM
-    ikm = dh1 + dh2 + dh3
+    ikm = dh1 + dh2 # + dh3
 
     # Use HKDF to derive tx and rx keys
     hkdf = Hkdf(b'', ikm) # No salt
