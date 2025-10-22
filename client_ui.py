@@ -73,7 +73,7 @@ class ClientUI:
         self.server_addr_entry.config(state='disabled')
         self.attack_button.config(state='normal')
 
-        command = [sys.executable, '-m', 'src.pytunnel.cli.client_cli', '--server', server_addr]
+        command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.client_cli', '--server', server_addr]
         full_command = command
 
         try:

@@ -67,7 +67,7 @@ class ServerUI:
         self.start_stop_button.config(text="Stop Server")
         self.vulnerable_check.config(state='disabled')
 
-        command = [sys.executable, '-m', 'src.pytunnel.cli.server_cli']
+        command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.server_cli']
         if self.vulnerable_mode.get():
             command.append('--vulnerable')
 
