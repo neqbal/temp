@@ -165,6 +165,7 @@ class ClientUI:
         self.root.after(100, self.process_log_queue)
 
     def log_message(self, message):
+        print(message) # Print to terminal
         self.log_display.config(state='normal')
         self.log_display.insert(tk.END, message + '\n')
         self.log_display.see(tk.END)
