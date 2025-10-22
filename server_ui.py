@@ -73,7 +73,7 @@ class ServerUI:
 
         # Use sudo for network permissions. This may prompt for a password in the terminal
         # where the UI was launched.
-        full_command = ['sudo', '-E'] + command
+        full_command = command
         
         try:
             # We use Popen to run in the background.
@@ -106,7 +106,7 @@ class ServerUI:
             self.log_message("--- Stopping server... ---")
             try:
                 # Kill the entire process group started with os.setsid
-                subprocess.run(['sudo', 'kill', '--', f'-{os.getpgid(self.server_process.pid)}'])
+                subprocess.run(['kill', '--', f'-{os.getpgid(self.server_process.pid)}'])
             except Exception as e:
                 self.log_message(f"Error trying to kill process: {e}")
             self.server_process.wait()
@@ -158,6 +158,10 @@ class ServerUI:
         self.root.destroy()
 
 if __name__ == "__main__":
+    if os.geteuid() != 0:
+        sys.stderr.write("This script must be run as root to create network interfaces.\n")
+        sys.exit(1)
+        
     root = tk.Tk()
     app = ServerUI(root)
     root.protocol("WM_DELETE_WINDOW", app.on_closing)

@@ -74,7 +74,7 @@ class ClientUI:
         self.attack_button.config(state='normal')
 
         command = [sys.executable, '-m', 'src.pytunnel.cli.client_cli', '--server', server_addr]
-        full_command = ['sudo', '-E'] + command
+        full_command = command
 
         try:
             self.client_process = subprocess.Popen(
@@ -98,7 +98,7 @@ class ClientUI:
         if self.client_process:
             self.log_message("--- Disconnecting... ---")
             try:
-                subprocess.run(['sudo', 'kill', '--', f'-{os.getpgid(self.client_process.pid)}'])
+                subprocess.run(['kill', '--', f'-{os.getpgid(self.client_process.pid)}'])
             except Exception as e:
                 self.log_message(f"Error trying to kill process: {e}")
             self.client_process.wait()
@@ -176,6 +176,10 @@ class ClientUI:
         self.root.destroy()
 
 if __name__ == "__main__":
+    if os.geteuid() != 0:
+        sys.stderr.write("This script must be run as root to create network interfaces.\n")
+        sys.exit(1)
+
     root = tk.Tk()
     app = ClientUI(root)
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
