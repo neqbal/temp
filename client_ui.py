@@ -29,7 +29,10 @@ class ClientUI:
         control_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
         control_frame.columnconfigure(1, weight=1)
 
-        ttk.Label(control_frame, text=f"Server: {self.server_addr} (from configs/client.yaml)").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(control_frame, text="Server Address:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        self.server_addr_var = tk.StringVar(value=f"{self.server_addr}")
+        self.server_addr_entry = ttk.Entry(control_frame, textvariable=self.server_addr_var, width=30)
+        self.server_addr_entry.grid(row=0, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
 
         self.connect_button = ttk.Button(control_frame, text="Connect", command=self.toggle_client)
         self.connect_button.grid(row=1, column=0, padx=5, pady=5)
