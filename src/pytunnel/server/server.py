@@ -16,7 +16,26 @@ class Server:
         self.config = config
         self.listen_addr = (config['listen_addr'], config['listen_port'])
         self.cookie_manager = CookieManager(os.urandom(32)) # TODO: Use a persistent secret
-        self.sessions = {}
+        self.sessions = {} # Maps (ip, port) -> Session
+        self.routing_table = {} # Maps tunnel_ip -> Session
+        self.authorized_clients = {} # Maps static_pubkey -> tunnel_ip
+
+        # Load authorized clients from config
+        for client_config in config.get('clients', []):
+            try:
+                pubkey = crypto.load_key(client_config['public_key_file'])
+                self.authorized_clients[pubkey] = client_config['tunnel_ip']
+            except FileNotFoundError:
+                log.log_error(f"Client public key file not found: {client_config['public_key_file']}")
+            except KeyError:
+                log.log_error(f"Invalid client configuration entry: {client_config}")
+        
+        if not self.authorized_clients:
+            log.log_error("No authorized clients were loaded. Check the server configuration.")
+            exit(1)
+        
+        log.log_info(f"Loaded {len(self.authorized_clients)} authorized client(s).")
+
         self.tun_fd = -1
 
         try:
@@ -92,19 +111,22 @@ class Server:
             log.log_info(f"Read {len(plaintext)} bytes from TUN device.")
 
             # --- ROUTING LOGIC --- #
-            # This is a major simplification. A real VPN would inspect the
-            # destination IP of the packet and look up the correct client session.
-            # For now, we just broadcast the packet to all connected clients.
-            if not self.sessions:
-                log.log_info("No clients connected, dropping packet.")
-                return
-
-            log.log_info(f"Broadcasting TUN packet to {len(self.sessions)} client(s).")
-            for client_addr, session in self.sessions.items():
-                encrypted_payload = session.encryptor.encrypt(plaintext)
-                msg = proto.pack_msg_data(encrypted_payload)
-                sock.sendto(msg, client_addr)
-                log.log_sent(f"MSG_DATA to {client_addr}")
+            # Extract destination IP from the IP header (bytes 16-19)
+            if len(plaintext) >= 20:
+                dest_ip_bytes = plaintext[16:20]
+                dest_ip_str = socket.inet_ntoa(dest_ip_bytes)
+                
+                session = self.routing_table.get(dest_ip_str)
+                if session:
+                    log.log_info(f"Found route for {dest_ip_str} -> {session.client_addr}")
+                    encrypted_payload = session.encryptor.encrypt(plaintext)
+                    msg = proto.pack_msg_data(encrypted_payload)
+                    sock.sendto(msg, session.client_addr)
+                    log.log_sent(f"MSG_DATA to {session.client_addr}")
+                else:
+                    log.log_error(f"No route found for destination IP: {dest_ip_str}")
+            else:
+                log.log_error("Received a packet from TUN that was too short to be an IP packet.")
 
         except Exception as e:
             log.log_error(f"Error handling TUN packet: {e}")
@@ -138,7 +160,14 @@ class Server:
                 log.log_error(f"Invalid cookie from {client_addr}")
                 return
 
-            # TODO: Verify client_static_pubkey against an allowlist
+            # Verify client_static_pubkey against the allowlist
+            if client_static_pubkey not in self.authorized_clients:
+                log.log_error(f"Unauthorized public key from {client_addr}. Ignoring.")
+                return
+            
+            tunnel_ip = self.authorized_clients[client_static_pubkey]
+            log.log_info(f"Client {client_addr} authorized for tunnel IP {tunnel_ip}")
+
 
             log.log_info("Cookie verified successfully")
             server_eph_privkey, server_eph_pubkey = crypto.generate_ephemeral_keys()
@@ -154,9 +183,10 @@ class Server:
             log.log_info(f"Server TX key: {tx_key.hex()}")
             log.log_info(f"Server RX key: {rx_key.hex()}")
 
-            session = Session(client_addr, tx_key, rx_key)
+            session = Session(client_addr, tx_key, rx_key, tunnel_ip)
             self.sessions[client_addr] = session
-            log.log_info(f"Session created for {client_addr[0]}:{client_addr[1]}")
+            self.routing_table[tunnel_ip] = session
+            log.log_info(f"Session created for {client_addr[0]}:{client_addr[1]} with tunnel IP {tunnel_ip}")
 
             response = proto.pack_msg_resp(bytes(server_eph_pubkey))
             sock.sendto(response, client_addr)
