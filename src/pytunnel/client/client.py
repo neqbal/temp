@@ -13,7 +13,6 @@ from nacl.public import PrivateKey, PublicKey
 
 class Client:
     def __init__(self, config, server_addr):
-        # TODO: Load configuration (server addr, port, keys) from config object
         self.server_addr = server_addr
         self.config = config
         self.sock = None
@@ -24,10 +23,9 @@ class Client:
         self.decryptor = None
 
         try:
-            # For now, we still load keys from hardcoded paths
-            self.static_privkey = PrivateKey(crypto.load_key('configs/client.key'))
+            self.static_privkey = PrivateKey(crypto.load_key(config['private_key_file']))
             self.static_pubkey = self.static_privkey.public_key
-            self.server_static_pubkey = PublicKey(crypto.load_key('configs/server.pub'))
+            self.server_static_pubkey = PublicKey(crypto.load_key(config['server_public_key_file']))
             log.log_info("Client and server keys loaded successfully.")
         except FileNotFoundError as e:
             log.log_error(f"Key file not found: {e.filename}")
@@ -51,9 +49,8 @@ class Client:
             log.log_error("Failed to create TUN interface. Exiting.")
             return
         
-        # TODO: Get interface name and IP from config
-        tun_name = "pytunnel0"
-        tun_ip = "10.0.0.2/24"
+        tun_name = "pytunnel0" # TODO: Make configurable
+        tun_ip = self.config['tunnel_ip']
         
         # This is where we would use run_shell_command, but for now, we log what we would do
         log.log_info(f"Configuring TUN device {tun_name}...")

@@ -13,18 +13,17 @@ from nacl.public import PrivateKey
 class Server:
     def __init__(self, config, vulnerable=False):
         self.vulnerable = vulnerable
-        # TODO: Load configuration (listen addr, port, keys)
-        self.listen_addr = ('0.0.0.0', 51820) # TODO: Load from config
         self.config = config
+        self.listen_addr = (config['listen_addr'], config['listen_port'])
         self.cookie_manager = CookieManager(os.urandom(32)) # TODO: Use a persistent secret
         self.sessions = {}
         self.tun_fd = -1
 
         try:
-            self.static_privkey = PrivateKey(crypto.load_key('configs/server.key'))
+            self.static_privkey = PrivateKey(crypto.load_key(config['private_key_file']))
             log.log_info("Server static key loaded successfully.")
         except FileNotFoundError:
-            log.log_error("Server key file not found!")
+            log.log_error(f"Server key file not found at '{config['private_key_file']}'!")
             log.log_error("Please run 'python3 scripts/genkeys.py --out-dir configs --name server' to generate keys.")
             exit(1)
 
@@ -44,9 +43,8 @@ class Server:
             sock.close()
             return
 
-        # TODO: Get interface name and IP from config
-        tun_name = "pytunnel0"
-        tun_ip = "10.0.0.1/24"
+        tun_name = "pytunnel0" # TODO: Make configurable
+        tun_ip = self.config['tunnel_ip']
 
         log.log_info(f"Configuring TUN device {tun_name}...")
         try:
