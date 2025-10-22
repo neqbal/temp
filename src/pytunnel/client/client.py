@@ -86,21 +86,41 @@ class Client:
         self.sock.sendto(msg, self.server_addr)
         log.log_sent("MSG_INIT")
 
-        # Step 2: Receive MSG_COOKIE_CHALLENGE
+        # Step 2: Receive the server's response and check its type
         response, _ = self.sock.recvfrom(4096)
-        cookie, timestamp = proto.unpack_msg_cookie_challenge(response)
-        log.log_received("MSG_COOKIE_CHALLENGE")
+        msg_type = proto.get_msg_type(response)
 
-        # Step 3: Send MSG_INIT_WITH_COOKIE
-        msg = proto.pack_msg_init_with_cookie(cookie, timestamp, bytes(eph_pubkey), bytes(self.static_pubkey))
-        self.sock.sendto(msg, self.server_addr)
-        log.log_sent("MSG_INIT_WITH_COOKIE")
+        server_eph_pubkey = None
 
-        # Step 4: Receive MSG_RESP
-        response, _ = self.sock.recvfrom(4096)
-        server_eph_pubkey = proto.unpack_msg_resp(response)
-        log.log_received("MSG_RESP")
+        if msg_type == proto.MSG_TYPE_COOKIE_CHALLENGE:
+            log.log_received("MSG_COOKIE_CHALLENGE")
+            cookie, timestamp = proto.unpack_msg_cookie_challenge(response)
 
+            # Step 3: Send MSG_INIT_WITH_COOKIE
+            msg = proto.pack_msg_init_with_cookie(cookie, timestamp, bytes(eph_pubkey), bytes(self.static_pubkey))
+            self.sock.sendto(msg, self.server_addr)
+            log.log_sent("MSG_INIT_WITH_COOKIE")
+
+            # Step 4: Receive MSG_RESP
+            response, _ = self.sock.recvfrom(4096)
+            if proto.get_msg_type(response) != proto.MSG_TYPE_RESP:
+                log.log_error("Handshake error: Expected MSG_RESP after cookie challenge.")
+                return
+            
+            server_eph_pubkey = proto.unpack_msg_resp(response)
+            log.log_received("MSG_RESP")
+        
+        elif msg_type == proto.MSG_TYPE_RESP:
+            # This is the vulnerable mode path, handshake completes in one round trip.
+            log.log_received("MSG_RESP")
+            log.log_info("Server appears to be in vulnerable mode (no cookie challenge).")
+            server_eph_pubkey = proto.unpack_msg_resp(response)
+
+        else:
+            log.log_error(f"Handshake error: Received unexpected message type {msg_type}")
+            return
+
+        # Step 5: Derive keys and complete handshake
         self.tx_key, self.rx_key = crypto.derive_keys(
             self.static_privkey,
             self.server_static_pubkey,

@@ -135,13 +135,36 @@ class Server:
         """Handles an initial handshake message."""
         log.log_received(f"MSG_INIT from {client_addr[0]}:{client_addr[1]}")
         try:
-            _, client_static_pubkey = proto.unpack_msg_init(payload)
+            client_eph_pubkey, client_static_pubkey = proto.unpack_msg_init(payload)
 
             if self.vulnerable:
-                # In vulnerable mode, we skip the cookie and proceed to an expensive (but useless) key derivation
-                log.log_error("VULNERABLE MODE: Performing expensive key derivation immediately!")
-                server_eph_privkey, _ = crypto.generate_ephemeral_keys()
-                crypto.derive_keys(self.static_privkey, client_static_pubkey, server_eph_privkey, b'\x00'*32, is_client=False)
+                log.log_error("VULNERABLE MODE: Bypassing cookie and creating session immediately!")
+                # Authorize, derive keys, create session, and send MSG_RESP directly.
+                if client_static_pubkey not in self.authorized_clients:
+                    log.log_error(f"Unauthorized public key from {client_addr}. Ignoring.")
+                    return
+
+                tunnel_ip = self.authorized_clients[client_static_pubkey]
+                log.log_info(f"Client {client_addr} authorized for tunnel IP {tunnel_ip}")
+
+                server_eph_privkey, server_eph_pubkey = crypto.generate_ephemeral_keys()
+
+                tx_key, rx_key = crypto.derive_keys(
+                    self.static_privkey,
+                    client_static_pubkey,
+                    server_eph_privkey,
+                    client_eph_pubkey,
+                    is_client=False
+                )
+
+                session = Session(client_addr, tx_key, rx_key, tunnel_ip)
+                self.sessions[client_addr] = session
+                self.routing_table[tunnel_ip] = session
+                log.log_info(f"Session created for {client_addr} with tunnel IP {tunnel_ip}")
+
+                response = proto.pack_msg_resp(bytes(server_eph_pubkey))
+                sock.sendto(response, client_addr)
+                log.log_sent(f"MSG_RESP to {client_addr}")
             else:
                 cookie, timestamp = self.cookie_manager.generate_cookie(client_addr)
                 response = proto.pack_msg_cookie_challenge(cookie, timestamp)
