@@ -6,6 +6,7 @@ import threading
 import queue
 import sys
 import os
+import yaml
 
 class ClientUI:
     def __init__(self, root):
@@ -14,6 +15,8 @@ class ClientUI:
         self.client_process = None
         self.attack_process = None
         self.log_queue = queue.Queue()
+        self.config = self.load_client_config()
+        self.server_addr = f"{self.config['server_addr']}:{self.config['server_port']}" if self.config else "N/A"
 
         # --- UI Elements ---
         main_frame = ttk.Frame(root, padding="10")
@@ -26,10 +29,7 @@ class ClientUI:
         control_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
         control_frame.columnconfigure(1, weight=1)
 
-        ttk.Label(control_frame, text="Server Address:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
-        self.server_addr_var = tk.StringVar(value="127.0.0.1:51820")
-        self.server_addr_entry = ttk.Entry(control_frame, textvariable=self.server_addr_var, width=30)
-        self.server_addr_entry.grid(row=0, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
+        ttk.Label(control_frame, text=f"Server: {self.server_addr} (from configs/client.yaml)").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
 
         self.connect_button = ttk.Button(control_frame, text="Connect", command=self.toggle_client)
         self.connect_button.grid(row=1, column=0, padx=5, pady=5)
@@ -55,6 +55,16 @@ class ClientUI:
 
         # --- Start background tasks ---
         self.root.after(100, self.process_log_queue)
+        if not self.config:
+            self.connect_button.config(state='disabled')
+
+    def load_client_config(self):
+        try:
+            with open('configs/client.yaml', 'r') as f:
+                return yaml.safe_load(f)
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            self.log_message(f"ERROR: Could not load configs/client.yaml: {e}")
+            return None
 
     def toggle_client(self):
         if self.client_process:
@@ -63,17 +73,15 @@ class ClientUI:
             self.start_client()
 
     def start_client(self):
-        server_addr = self.server_addr_var.get()
-        if not server_addr:
-            self.log_message("ERROR: Server address cannot be empty.")
+        if not self.config:
+            self.log_message("ERROR: Client configuration is not loaded. Cannot connect.")
             return
 
-        self.log_message(f"--- Connecting to {server_addr}... ---")
+        self.log_message(f"--- Connecting to {self.server_addr}... ---")
         self.connect_button.config(text="Disconnect")
-        self.server_addr_entry.config(state='disabled')
         self.attack_button.config(state='normal')
 
-        command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.client_cli', '--config', './configs/client.yaml']
+        command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.client_cli', '--config', 'configs/client.yaml']
         full_command = command
 
         try:
@@ -104,7 +112,6 @@ class ClientUI:
             self.client_process.wait()
         self.client_process = None
         self.connect_button.config(text="Connect")
-        self.server_addr_entry.config(state='normal')
         self.attack_button.config(state='disabled')
         self.log_message("--- Client disconnected. ---")
 
@@ -115,13 +122,12 @@ class ClientUI:
             self.start_attack()
 
     def start_attack(self):
-        server_addr = self.server_addr_var.get()
-        try:
-            ip, port_str = server_addr.split(':')
-            port = int(port_str)
-        except ValueError:
-            self.log_message("ERROR: Invalid server address format for attack. Use IP:PORT.")
+        if not self.config:
+            self.log_message("ERROR: Client configuration is not loaded. Cannot start attack.")
             return
+        
+        ip = self.config['server_addr']
+        port = self.config['server_port']
 
         self.log_message("--- Starting DDoS flood attack... ---")
         self.attack_button.config(text="Stop Attack")
