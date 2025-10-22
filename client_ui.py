@@ -44,7 +44,7 @@ class ClientUI:
 
         self.attack_button = ttk.Button(attack_frame, text="Launch DDoS Flood Attack", command=self.toggle_attack)
         self.attack_button.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
-        self.attack_button.config(state='disabled') # Disabled until connected
+        self.attack_button.config(state='normal') # Disabled until connected
 
         # Log Frame
         log_frame = ttk.LabelFrame(main_frame, text="Client Logs", padding="10")
@@ -82,7 +82,7 @@ class ClientUI:
 
         self.log_message(f"--- Connecting to {self.server_addr}... ---")
         self.connect_button.config(text="Disconnect")
-        self.attack_button.config(state='normal')
+        self.attack_button.config(state='disabled')
 
         command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.client_cli', '--config', 'configs/client.yaml']
         full_command = command
@@ -115,7 +115,7 @@ class ClientUI:
             self.client_process.wait()
         self.client_process = None
         self.connect_button.config(text="Connect")
-        self.attack_button.config(state='disabled')
+        self.attack_button.config(state='normal')
         self.log_message("--- Client disconnected. ---")
 
     def toggle_attack(self):
