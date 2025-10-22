@@ -138,17 +138,10 @@ class Server:
             client_eph_pubkey, client_static_pubkey = proto.unpack_msg_init(payload)
 
             if self.vulnerable:
-                log.log_error("VULNERABLE MODE: Bypassing cookie and creating session immediately!")
-                # Authorize, derive keys, create session, and send MSG_RESP directly.
-                if client_static_pubkey not in self.authorized_clients:
-                    log.log_error(f"Unauthorized public key from {client_addr}. Ignoring.")
-                    return
-
-                tunnel_ip = self.authorized_clients[client_static_pubkey]
-                log.log_info(f"Client {client_addr} authorized for tunnel IP {tunnel_ip}")
-
+                log.log_error("VULNERABLE MODE: Performing expensive key derivation before authorization!")
+                
+                # Perform expensive derivation immediately for any incoming packet.
                 server_eph_privkey, server_eph_pubkey = crypto.generate_ephemeral_keys()
-
                 tx_key, rx_key = crypto.derive_keys(
                     self.static_privkey,
                     client_static_pubkey,
@@ -157,6 +150,15 @@ class Server:
                     is_client=False
                 )
 
+                # Now, check if the client is actually authorized.
+                if client_static_pubkey not in self.authorized_clients:
+                    log.log_error(f"Unauthorized public key from {client_addr}. Dropping AFTER expensive work.")
+                    return
+
+                # If authorized, proceed to create the session with the keys we already derived.
+                tunnel_ip = self.authorized_clients[client_static_pubkey]
+                log.log_info(f"Client {client_addr} authorized for tunnel IP {tunnel_ip}")
+                
                 session = Session(client_addr, tx_key, rx_key, tunnel_ip)
                 self.sessions[client_addr] = session
                 self.routing_table[tunnel_ip] = session
