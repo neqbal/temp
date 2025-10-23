@@ -133,20 +133,20 @@ class ServerUI:
         self.log_display.config(state='normal')
 
         # Define color tags
-        self.log_display.tag_config('info', foreground='green')
+        self.log_display.tag_config('info', foreground='blue')
         self.log_display.tag_config('error', foreground='red')
-        self.log_display.tag_config('warning', foreground='orange')
-        self.log_display.tag_config('normal', foreground='white')
+        self.log_display.tag_config('sent', foreground='orange')
+        self.log_display.tag_config('recv', foreground='green')
 
         # Determine color by content
-        if "ERROR" in message or "Error" in message:
+        if "ERROR" in message:
             tag = 'error'
-        elif "WARNING" in message or "Warning" in message:
-            tag = 'warning'
-        elif "Starting" in message or "Stopped" in message or "Server" in message:
+        elif "INFO" in message:
             tag = 'info'
+        elif "SENT" in message:
+            tag = 'sent'
         else:
-            tag = 'normal'
+            tag = 'recv'
 
         self.log_display.insert(tk.END, message + '\n', tag)
         self.log_display.see(tk.END)
