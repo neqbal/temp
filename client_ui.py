@@ -69,6 +69,11 @@ class ClientUI:
         )
         self.log_display.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
+        self.log_display.tag_config('info', foreground='blue')
+        self.log_display.tag_config('error', foreground='red')
+        self.log_display.tag_config('sent', foreground='orange')
+        self.log_display.tag_config('recv', foreground='green')
+
         # Start background tasks
         self.root.after(100, self.process_log_queue)
         if not self.config:
