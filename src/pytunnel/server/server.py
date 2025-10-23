@@ -11,7 +11,7 @@ from .session import Session
 from nacl.public import PrivateKey
 
 class Server:
-    def __init__(self, config, vulnerable=False):
+    def __init__(self, config, vulnerable=False, disable_replay_protection=False):
         self.vulnerable = vulnerable
         self.config = config
         self.listen_addr = (config['listen_addr'], config['listen_port'])
@@ -19,6 +19,7 @@ class Server:
         self.sessions = {} # Maps (ip, port) -> Session
         self.routing_table = {} # Maps tunnel_ip -> Session
         self.authorized_clients = {} # Maps static_pubkey -> tunnel_ip
+        self.disable_replay_protection = disable_replay_protection
 
         # Load authorized clients from config
         for client_config in config.get('clients', []):
@@ -54,6 +55,9 @@ class Server:
 
         if self.vulnerable:
             log.log_error("Server is running in VULNERABLE mode. DDoS protection is OFF.")
+
+        if self.disable_replay_protection:
+            log.log_error("Replay protection is DISABLED.")
 
         # Setup TUN device
         self.tun_fd = tun.create_tun_interface()
@@ -230,8 +234,13 @@ class Server:
 
         try:
             encrypted_payload = proto.unpack_msg_data(payload)
-            # TODO: Check for replays
-            plaintext = session.decryptor.decrypt(encrypted_payload)
+            plaintext, seq = session.decryptor.decrypt(encrypted_payload)
+            
+            if not self.disable_replay_protection:
+                if not session.replay_window.accept(seq):
+                    log.log_error(f"Replay detected! Dropping packet with sequence number {seq}.")
+                    return
+
             os.write(self.tun_fd, plaintext)
             log.log_info(f"Wrote {len(plaintext)} bytes to TUN device.")
         except Exception as e:

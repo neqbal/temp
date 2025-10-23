@@ -47,28 +47,42 @@ def derive_keys(static_privkey, remote_static_pubkey, ephemeral_privkey, remote_
 
 from nacl.secret import SecretBox
 import nacl.utils
+import struct
 
 class Encryptor:
     """Encrypts outgoing packets."""
     def __init__(self, key):
         self.box = SecretBox(key)
+        self.seq = 0
 
     def encrypt(self, plaintext):
         """Encrypts and authenticates plaintext. A random nonce is generated for each message."""
         nonce = nacl.utils.random(SecretBox.NONCE_SIZE)
+        
+        # Pack sequence number and prepend to ciphertext
+        seq_bytes = struct.pack('!Q', self.seq)
+        
+        # The nonce is prepended to the ciphertext.
         ciphertext = self.box.encrypt(plaintext, nonce)
-        # The nonce is prepended to the ciphertext. The first 24 bytes are the nonce.
-        return ciphertext
+        
+        self.seq += 1
+        return seq_bytes + ciphertext
 
 class Decryptor:
     """Decrypts incoming packets."""
     def __init__(self, key):
         self.box = SecretBox(key)
 
-    def decrypt(self, ciphertext):
+    def decrypt(self, payload):
         """Decrypts and verifies ciphertext. The nonce is extracted from the first 24 bytes."""
+        # Unpack sequence number
+        seq, = struct.unpack('!Q', payload[:8])
+        ciphertext = payload[8:]
+        
         # The nonce is extracted from the beginning of the message
         nonce = ciphertext[:SecretBox.NONCE_SIZE]
         # The actual encrypted message is after the nonce
         message = ciphertext[SecretBox.NONCE_SIZE:]
-        return self.box.decrypt(message, nonce)
+        
+        plaintext = self.box.decrypt(message, nonce)
+        return plaintext, seq

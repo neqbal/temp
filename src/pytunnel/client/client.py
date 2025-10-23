@@ -9,10 +9,11 @@ from ..common import crypto
 from ..common import proto
 from ..common import log
 from ..common import tun
+from ..common.replay import ReplayWindow
 from nacl.public import PrivateKey, PublicKey
 
 class Client:
-    def __init__(self, config, server_addr):
+    def __init__(self, config, server_addr, disable_replay_protection=False):
         self.server_addr = server_addr
         self.config = config
         self.sock = None
@@ -21,6 +22,8 @@ class Client:
         self.rx_key = None
         self.encryptor = None
         self.decryptor = None
+        self.replay_window = ReplayWindow()
+        self.disable_replay_protection = disable_replay_protection
 
         try:
             self.static_privkey = PrivateKey(crypto.load_key(config['private_key_file']))
@@ -31,13 +34,15 @@ class Client:
             log.log_error(f"Key file not found: {e.filename}")
             log.log_error("Please run 'python3 scripts/genkeys.py --out-dir configs --name [server/client]' and ensure server.pub is copied to the client.")
             exit(1)
-        # TODO: Initialize ReplayWindow
 
     def run(self):
         """Starts the client and enters the main event loop."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         log.log_info(f"Connecting to server at {self.server_addr[0]}:{self.server_addr[1]}")
         
+        if self.disable_replay_protection:
+            log.log_error("Replay protection is DISABLED.")
+
         self.handshake()
         if not self.tx_key or not self.rx_key:
             log.log_error("Handshake failed. Could not derive session keys.")
@@ -147,9 +152,13 @@ class Client:
                 log.log_received("MSG_DATA")
                 encrypted_payload = proto.unpack_msg_data(data)
                 
-                # TODO: Check for replays
+                plaintext, seq = self.decryptor.decrypt(encrypted_payload)
                 
-                plaintext = self.decryptor.decrypt(encrypted_payload)
+                if not self.disable_replay_protection:
+                    if not self.replay_window.accept(seq):
+                        log.log_error(f"Replay detected! Dropping packet with sequence number {seq}.")
+                        return
+                
                 os.write(self.tun_fd, plaintext)
                 log.log_info(f"Wrote {len(plaintext)} bytes to TUN device.")
         except Exception as e:
