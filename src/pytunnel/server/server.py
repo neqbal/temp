@@ -235,9 +235,13 @@ class Server:
         try:
             encrypted_payload = proto.unpack_msg_data(payload)
             plaintext, seq = session.decryptor.decrypt(encrypted_payload)
-            
-            if not self.disable_replay_protection:
-                if not session.replay_window.accept(seq):
+
+            is_replay = not session.replay_window.accept(seq)
+
+            if is_replay:
+                if self.disable_replay_protection:
+                    log.log_error(f"Replay detected and allowed with sequence number {seq} (replay protection disabled).")
+                else:
                     log.log_error(f"Replay detected! Dropping packet with sequence number {seq}.")
                     return
 
