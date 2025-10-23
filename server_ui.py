@@ -45,7 +45,7 @@ class ServerUI:
         log_frame.rowconfigure(0, weight=1)
         main_frame.rowconfigure(1, weight=1)
 
-        self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, state='disabled', height=15, width=80)
+        self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, state='disabled', height=15, width=80, bg="#1e1e1e", fg="white", insertbackground="white")
         self.log_display.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Status Frame
@@ -78,13 +78,9 @@ class ServerUI:
         if self.disable_replay_protection_var.get():
             command.append('--disable-replay-protection')
 
-        # Use sudo for network permissions. This may prompt for a password in the terminal
-        # where the UI was launched.
         full_command = command
-        
+
         try:
-            # We use Popen to run in the background.
-            # We capture stdout and stderr to display in our log.
             self.server_process = subprocess.Popen(
                 full_command,
                 stdout=subprocess.PIPE,
@@ -92,7 +88,7 @@ class ServerUI:
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
-                preexec_fn=os.setsid # To kill the whole process group
+                preexec_fn=os.setsid
             )
         except FileNotFoundError:
             self.log_message("ERROR: 'sudo' command not found. Please run this UI with sudo privileges.")
@@ -103,8 +99,6 @@ class ServerUI:
             self.stop_server()
             return
 
-
-        # Start threads to read stdout and stderr without blocking the UI
         threading.Thread(target=self.enqueue_output, args=(self.server_process.stdout, self.log_queue), daemon=True).start()
         threading.Thread(target=self.enqueue_output, args=(self.server_process.stderr, self.log_queue), daemon=True).start()
 
@@ -112,7 +106,6 @@ class ServerUI:
         if self.server_process:
             self.log_message("--- Stopping server... ---")
             try:
-                # Kill the entire process group started with os.setsid
                 subprocess.run(['kill', '--', f'-{os.getpgid(self.server_process.pid)}'])
             except Exception as e:
                 self.log_message(f"Error trying to kill process: {e}")
@@ -124,7 +117,6 @@ class ServerUI:
         self.log_message("--- Server stopped. ---")
 
     def enqueue_output(self, pipe, queue):
-        """Reads lines from a pipe and puts them in a queue."""
         try:
             for line in iter(pipe.readline, ''):
                 queue.put(line)
@@ -132,21 +124,39 @@ class ServerUI:
             pipe.close()
 
     def process_log_queue(self):
-        """Processes messages from the log queue and updates the UI."""
         while not self.log_queue.empty():
             line = self.log_queue.get_nowait()
             self.log_message(line.strip())
         self.root.after(100, self.process_log_queue)
 
-    def log_message(self, message):
-        print(message) # Print to terminal
+    def insert_colored_text(self, message):
         self.log_display.config(state='normal')
-        self.log_display.insert(tk.END, message + '\n')
+
+        # Define color tags
+        self.log_display.tag_config('info', foreground='green')
+        self.log_display.tag_config('error', foreground='red')
+        self.log_display.tag_config('warning', foreground='orange')
+        self.log_display.tag_config('normal', foreground='white')
+
+        # Determine color by content
+        if "ERROR" in message or "Error" in message:
+            tag = 'error'
+        elif "WARNING" in message or "Warning" in message:
+            tag = 'warning'
+        elif "Starting" in message or "Stopped" in message or "Server" in message:
+            tag = 'info'
+        else:
+            tag = 'normal'
+
+        self.log_display.insert(tk.END, message + '\n', tag)
         self.log_display.see(tk.END)
         self.log_display.config(state='disabled')
 
+    def log_message(self, message):
+        print(message)
+        self.insert_colored_text(message)
+
     def monitor_cpu(self):
-        """Monitors CPU usage in a separate thread."""
         def cpu_worker():
             while True:
                 cpu_percent = psutil.cpu_percent(interval=1)
@@ -156,7 +166,6 @@ class ServerUI:
         self.root.after(1000, self.update_cpu_label)
 
     def update_cpu_label(self):
-        """Updates the CPU label from the queue."""
         while not self.cpu_queue.empty():
             cpu_percent = self.cpu_queue.get_nowait()
             self.cpu_label.config(text=f"CPU Usage: {cpu_percent:.1f}%")
@@ -170,7 +179,7 @@ if __name__ == "__main__":
     if os.geteuid() != 0:
         sys.stderr.write("This script must be run as root to create network interfaces.\n")
         sys.exit(1)
-        
+
     root = tk.Tk()
     app = ServerUI(root)
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
