@@ -19,41 +19,39 @@ class ClientUI:
         self.config = self.load_client_config()
         self.server_addr = f"{self.config['server_addr']}:{self.config['server_port']}" if self.config else "N/A"
 
-        self.setup_styles()
-
         # --- UI Elements ---
-        main_frame = ttk.Frame(root, padding="10", style='App.TFrame')
+        main_frame = ttk.Frame(root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(0, weight=1)
 
         # Control Frame
-        control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10", style='App.TLabelframe')
+        control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10")
         control_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
 
-        ttk.Label(control_frame, text="Server Address:", style='App.TLabel').grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(control_frame, text="Server Address:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.server_addr_var = tk.StringVar(value=f"{self.server_addr}")
-        self.server_addr_entry = ttk.Entry(control_frame, textvariable=self.server_addr_var, width=30, style='App.TEntry')
+        self.server_addr_entry = ttk.Entry(control_frame, textvariable=self.server_addr_var, width=30)
         self.server_addr_entry.grid(row=0, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
         control_frame.columnconfigure(1, weight=1)
 
-        self.connect_button = ttk.Button(control_frame, text="Connect", command=self.toggle_client, style='App.TButton')
+        self.connect_button = ttk.Button(control_frame, text="Connect", command=self.toggle_client)
         self.connect_button.grid(row=1, column=0, padx=5, pady=5)
 
         # Attack Frame
-        attack_frame = ttk.LabelFrame(main_frame, text="Attack Tools", padding="10", style='App.TLabelframe')
+        attack_frame = ttk.LabelFrame(main_frame, text="Attack Tools", padding="10")
         attack_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=10)
 
-        self.attack_button = ttk.Button(attack_frame, text="Launch DDoS Flood Attack", command=self.toggle_attack, style='App.TButton')
+        self.attack_button = ttk.Button(attack_frame, text="Launch DDoS Flood Attack", command=self.toggle_attack)
         self.attack_button.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.attack_button.config(state='normal') # Disabled until connected
 
-        self.replay_attack_button = ttk.Button(attack_frame, text="Launch Replay Attack", command=self.toggle_replay_attack, style='App.TButton')
+        self.replay_attack_button = ttk.Button(attack_frame, text="Launch Replay Attack", command=self.toggle_replay_attack)
         self.replay_attack_button.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
 
         # Log Frame
-        log_frame = ttk.LabelFrame(main_frame, text="Client Logs", padding="10", style='App.TLabelframe')
+        log_frame = ttk.LabelFrame(main_frame, text="Client Logs", padding="10")
         log_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
@@ -61,32 +59,11 @@ class ClientUI:
 
         self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, state='disabled', height=15, width=80)
         self.log_display.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        self.log_display.configure(bg="#2E2E2E", fg="#F5F5F5", insertbackground="#F5F5F5")
 
         # --- Start background tasks ---
         self.root.after(100, self.process_log_queue)
         if not self.config:
             self.connect_button.config(state='disabled')
-
-    def setup_styles(self):
-        BG_COLOR = "#2E2E2E"
-        FG_COLOR = "#F5F5F5"
-        ACCENT_COLOR = "#007ACC"
-        SUCCESS_COLOR = "#28A745"
-        DANGER_COLOR = "#DC3545"
-
-        self.root.configure(bg=BG_COLOR)
-
-        style = ttk.Style()
-        style.theme_use('clam')
-
-        style.configure('App.TFrame', background=BG_COLOR)
-        style.configure('App.TLabelframe', background=BG_COLOR, foreground=FG_COLOR, bordercolor=ACCENT_COLOR)
-        style.configure('App.TLabelframe.Label', background=BG_COLOR, foreground=FG_COLOR)
-        style.configure('App.TLabel', background=BG_COLOR, foreground=FG_COLOR)
-        style.configure('App.TButton', background=ACCENT_COLOR, foreground="white", bordercolor=ACCENT_COLOR, lightcolor=ACCENT_COLOR, darkcolor=ACCENT_COLOR)
-        style.map('App.TButton', background=[('active', '#005f9e')])
-        style.configure('App.TEntry', fieldbackground=BG_COLOR, foreground=FG_COLOR, insertcolor=FG_COLOR, bordercolor=ACCENT_COLOR)
 
     def load_client_config(self):
         try:
