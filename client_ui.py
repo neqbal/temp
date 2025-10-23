@@ -37,16 +37,6 @@ class ClientUI:
         self.connect_button = ttk.Button(control_frame, text="Connect", command=self.toggle_client)
         self.connect_button.grid(row=1, column=0, padx=5, pady=5)
 
-        ttk.Label(control_frame, text="Log Level:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
-        self.loglevel_var = tk.StringVar(value='INFO')
-        self.loglevel_combo = ttk.Combobox(
-            control_frame, 
-            textvariable=self.loglevel_var, 
-            values=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-            state="readonly"
-        )
-        self.loglevel_combo.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
-
         # Attack Frame
         attack_frame = ttk.LabelFrame(main_frame, text="Attack Tools", padding="10")
         attack_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=10)
@@ -93,9 +83,8 @@ class ClientUI:
         self.log_message(f"--- Connecting to {self.server_addr}... ---")
         self.connect_button.config(text="Disconnect")
         self.attack_button.config(state='disabled')
-        self.loglevel_combo.config(state='disabled')
 
-        command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.client_cli', '--config', 'configs/client.yaml', '--loglevel', self.loglevel_var.get()]
+        command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.client_cli', '--config', 'configs/client.yaml']
         full_command = command
 
         try:
@@ -127,7 +116,6 @@ class ClientUI:
         self.client_process = None
         self.connect_button.config(text="Connect")
         self.attack_button.config(state='normal')
-        self.loglevel_combo.config(state='readonly')
         self.log_message("--- Client disconnected. ---")
 
     def toggle_attack(self):

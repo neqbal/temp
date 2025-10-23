@@ -1,13 +1,18 @@
-import logging
+class Color:
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    END = '\033[0m'
 
 def log_sent(label, message=""):
-    logging.debug(f"[ SENT ] {label} {message}")
+    print(f"{Color.YELLOW}[ SENT ]{Color.END} {label} {message}")
 
 def log_received(label, message=""):
-    logging.debug(f"[ RECV ] {label} {message}")
+    print(f"{Color.GREEN}[ RECV ]{Color.END} {label} {message}")
 
 def log_info(message):
-    logging.info(f"[ INFO ] {message}")
+    print(f"{Color.BLUE}[ INFO ]{Color.END} {message}")
 
 def log_error(message):
-    logging.error(f"[ ERROR ] {message}")
+    print(f"{Color.RED}[ ERROR ]{Color.END} {message}")
