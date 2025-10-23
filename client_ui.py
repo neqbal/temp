@@ -14,6 +14,7 @@ class ClientUI:
         self.root.title("PyTunnel Client Control")
         self.client_process = None
         self.attack_process = None
+        self.replay_attack_process = None
         self.log_queue = queue.Queue()
         self.config = self.load_client_config()
         self.server_addr = f"{self.config['server_addr']}:{self.config['server_port']}" if self.config else "N/A"
@@ -45,6 +46,9 @@ class ClientUI:
         self.attack_button = ttk.Button(attack_frame, text="Launch DDoS Flood Attack", command=self.toggle_attack)
         self.attack_button.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.attack_button.config(state='normal') # Disabled until connected
+
+        self.replay_attack_button = ttk.Button(attack_frame, text="Launch Replay Attack", command=self.toggle_replay_attack)
+        self.replay_attack_button.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
 
         # Log Frame
         log_frame = ttk.LabelFrame(main_frame, text="Client Logs", padding="10")
@@ -160,6 +164,44 @@ class ClientUI:
         self.attack_process = None
         self.attack_button.config(text="Launch DDoS Flood Attack")
 
+    def toggle_replay_attack(self):
+        if self.replay_attack_process:
+            self.stop_replay_attack()
+        else:
+            self.start_replay_attack()
+
+    def start_replay_attack(self):
+        if not self.config:
+            self.log_message("ERROR: Client configuration is not loaded. Cannot start attack.")
+            return
+        
+        ip = self.config['server_addr']
+        port = self.config['server_port']
+
+        self.log_message("--- Starting Replay attack... ---")
+        self.replay_attack_button.config(text="Stop Replay Attack")
+
+        command = [sys.executable, 'tools/replay_attack.py', '--target', ip, '--port', str(port)]
+        
+        self.replay_attack_process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            universal_newlines=True
+        )
+        threading.Thread(target=self.enqueue_output, args=(self.replay_attack_process.stdout, self.log_queue), daemon=True).start()
+        threading.Thread(target=self.enqueue_output, args=(self.replay_attack_process.stderr, self.log_queue), daemon=True).start()
+
+    def stop_replay_attack(self):
+        if self.replay_attack_process:
+            self.log_message("--- Stopping Replay attack... ---")
+            self.replay_attack_process.terminate()
+            self.replay_attack_process.wait()
+        self.replay_attack_process = None
+        self.replay_attack_button.config(text="Launch Replay Attack")
+
     def enqueue_output(self, pipe, queue):
         try:
             for line in iter(pipe.readline, ''):
@@ -183,6 +225,7 @@ class ClientUI:
     def on_closing(self):
         self.stop_client()
         self.stop_attack()
+        self.stop_replay_attack()
         self.root.destroy()
 
 if __name__ == "__main__":

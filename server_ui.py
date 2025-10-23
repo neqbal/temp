@@ -34,6 +34,10 @@ class ServerUI:
         self.vulnerable_check = ttk.Checkbutton(control_frame, text="Run in Vulnerable Mode", variable=self.vulnerable_mode)
         self.vulnerable_check.grid(row=0, column=2, padx=5, pady=5)
 
+        self.disable_replay_protection_var = tk.BooleanVar()
+        self.disable_replay_protection_check = ttk.Checkbutton(control_frame, text="Disable Replay Protection", variable=self.disable_replay_protection_var)
+        self.disable_replay_protection_check.grid(row=0, column=3, padx=5, pady=5)
+
         # Log Frame
         log_frame = ttk.LabelFrame(main_frame, text="Server Logs", padding="10")
         log_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -66,10 +70,13 @@ class ServerUI:
         self.log_message("--- Starting server... ---")
         self.start_stop_button.config(text="Stop Server")
         self.vulnerable_check.config(state='disabled')
+        self.disable_replay_protection_check.config(state='disabled')
 
         command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.server_cli', '--config', 'configs/server.yaml']
         if self.vulnerable_mode.get():
             command.append('--vulnerable')
+        if self.disable_replay_protection_var.get():
+            command.append('--disable-replay-protection')
 
         # Use sudo for network permissions. This may prompt for a password in the terminal
         # where the UI was launched.
@@ -113,6 +120,7 @@ class ServerUI:
         self.server_process = None
         self.start_stop_button.config(text="Start Server")
         self.vulnerable_check.config(state='normal')
+        self.disable_replay_protection_check.config(state='normal')
         self.log_message("--- Server stopped. ---")
 
     def enqueue_output(self, pipe, queue):
