@@ -45,7 +45,7 @@ class ClientUI:
 
         self.attack_button = ttk.Button(attack_frame, text="Launch DDoS Flood Attack", command=self.toggle_attack)
         self.attack_button.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
-        self.attack_button.config(state='normal') # Disabled until connected
+        self.attack_button.config(state='normal')
 
         self.replay_attack_button = ttk.Button(attack_frame, text="Launch Replay Attack", command=self.toggle_replay_attack)
         self.replay_attack_button.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
@@ -57,10 +57,19 @@ class ClientUI:
         log_frame.rowconfigure(0, weight=1)
         main_frame.rowconfigure(2, weight=1)
 
-        self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, state='disabled', height=15, width=80)
+        self.log_display = scrolledtext.ScrolledText(
+            log_frame,
+            wrap=tk.WORD,
+            state='disabled',
+            height=15,
+            width=80,
+            bg="#1e1e1e",
+            fg="white",
+            insertbackground="white"
+        )
         self.log_display.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
-        # --- Start background tasks ---
+        # Start background tasks
         self.root.after(100, self.process_log_queue)
         if not self.config:
             self.connect_button.config(state='disabled')
@@ -132,7 +141,7 @@ class ClientUI:
         if not self.config:
             self.log_message("ERROR: Client configuration is not loaded. Cannot start attack.")
             return
-        
+
         ip = self.config['server_addr']
         port = self.config['server_port']
 
@@ -140,8 +149,7 @@ class ClientUI:
         self.attack_button.config(text="Stop Attack")
 
         command = [sys.executable, 'tools/flood_attack.py', '--target', ip, '--port', str(port)]
-        
-        # The attack script does not need sudo if scapy is installed correctly
+
         self.attack_process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -150,11 +158,8 @@ class ClientUI:
             bufsize=1,
             universal_newlines=True
         )
-        # We only log the output of the attack tool, not from the main client log
-        attack_log_queue = queue.Queue()
         threading.Thread(target=self.enqueue_output, args=(self.attack_process.stdout, self.log_queue), daemon=True).start()
         threading.Thread(target=self.enqueue_output, args=(self.attack_process.stderr, self.log_queue), daemon=True).start()
-
 
     def stop_attack(self):
         if self.attack_process:
@@ -174,7 +179,7 @@ class ClientUI:
         if not self.config:
             self.log_message("ERROR: Client configuration is not loaded. Cannot start attack.")
             return
-        
+
         ip = self.config['server_addr']
         port = self.config['server_port']
 
@@ -182,7 +187,7 @@ class ClientUI:
         self.replay_attack_button.config(text="Stop Replay Attack")
 
         command = [sys.executable, 'tools/replay_attack.py', '--target', ip, '--port', str(port)]
-        
+
         self.replay_attack_process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -207,7 +212,7 @@ class ClientUI:
             for line in iter(pipe.readline, ''):
                 queue.put(line)
         finally:
-            pipe.close()
+                pipe.close()
 
     def process_log_queue(self):
         while not self.log_queue.empty():
@@ -215,12 +220,32 @@ class ClientUI:
             self.log_message(line.strip())
         self.root.after(100, self.process_log_queue)
 
-    def log_message(self, message):
-        print(message) # Print to terminal
+    def insert_colored_text(self, message):
         self.log_display.config(state='normal')
-        self.log_display.insert(tk.END, message + '\n')
+
+        # Define color tags
+        self.log_display.tag_config('info', foreground='blue')
+        self.log_display.tag_config('error', foreground='red')
+        self.log_display.tag_config('sent', foreground='orange')
+        self.log_display.tag_config('recv', foreground='green')
+
+        # Determine color by content
+        if "ERROR" in message:
+            tag = 'error'
+        elif "INFO" in message:
+            tag = 'info'
+        elif "SENT" in message:
+            tag = 'sent'
+        else:
+            tag = 'recv'
+
+        self.log_display.insert(tk.END, message + '\n', tag)
         self.log_display.see(tk.END)
         self.log_display.config(state='disabled')
+
+    def log_message(self, message):
+        print(message)
+        self.insert_colored_text(message)
 
     def on_closing(self):
         self.stop_client()
