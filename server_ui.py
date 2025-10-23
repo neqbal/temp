@@ -16,30 +16,32 @@ class ServerUI:
         self.log_queue = queue.Queue()
         self.cpu_queue = queue.Queue()
 
+        self.setup_styles()
+
         # --- UI Elements ---
-        main_frame = ttk.Frame(root, padding="10")
+        main_frame = ttk.Frame(root, padding="10", style='App.TFrame')
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(0, weight=1)
 
         # Control Frame
-        control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10")
+        control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10", style='App.TLabelframe')
         control_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
 
-        self.start_stop_button = ttk.Button(control_frame, text="Start Server", command=self.toggle_server)
+        self.start_stop_button = ttk.Button(control_frame, text="Start Server", command=self.toggle_server, style='App.TButton')
         self.start_stop_button.grid(row=0, column=0, padx=5, pady=5)
 
         self.vulnerable_mode = tk.BooleanVar()
-        self.vulnerable_check = ttk.Checkbutton(control_frame, text="Run in Vulnerable Mode", variable=self.vulnerable_mode)
+        self.vulnerable_check = ttk.Checkbutton(control_frame, text="Run in Vulnerable Mode", variable=self.vulnerable_mode, style='App.TCheckbutton')
         self.vulnerable_check.grid(row=0, column=2, padx=5, pady=5)
 
         self.disable_replay_protection_var = tk.BooleanVar()
-        self.disable_replay_protection_check = ttk.Checkbutton(control_frame, text="Disable Replay Protection", variable=self.disable_replay_protection_var)
+        self.disable_replay_protection_check = ttk.Checkbutton(control_frame, text="Disable Replay Protection", variable=self.disable_replay_protection_var, style='App.TCheckbutton')
         self.disable_replay_protection_check.grid(row=0, column=3, padx=5, pady=5)
 
         # Log Frame
-        log_frame = ttk.LabelFrame(main_frame, text="Server Logs", padding="10")
+        log_frame = ttk.LabelFrame(main_frame, text="Server Logs", padding="10", style='App.TLabelframe')
         log_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
@@ -47,18 +49,40 @@ class ServerUI:
 
         self.log_display = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, state='disabled', height=15, width=80)
         self.log_display.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.log_display.configure(bg="#2E2E2E", fg="#F5F5F5", insertbackground="#F5F5F5")
 
         # Status Frame
-        status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10")
+        status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10", style='App.TLabelframe')
         status_frame.grid(row=2, column=0, sticky=(tk.W, tk.E))
         status_frame.columnconfigure(0, weight=1)
 
-        self.cpu_label = ttk.Label(status_frame, text="CPU Usage: --%")
+        self.cpu_label = ttk.Label(status_frame, text="CPU Usage: --%", style='App.TLabel')
         self.cpu_label.grid(row=0, column=0, sticky=tk.W)
 
         # --- Start background tasks ---
         self.root.after(100, self.process_log_queue)
         self.monitor_cpu()
+
+    def setup_styles(self):
+        BG_COLOR = "#2E2E2E"
+        FG_COLOR = "#F5F5F5"
+        ACCENT_COLOR = "#007ACC"
+        SUCCESS_COLOR = "#28A745"
+        DANGER_COLOR = "#DC3545"
+
+        self.root.configure(bg=BG_COLOR)
+
+        style = ttk.Style()
+        style.theme_use('clam')
+
+        style.configure('App.TFrame', background=BG_COLOR)
+        style.configure('App.TLabelframe', background=BG_COLOR, foreground=FG_COLOR, bordercolor=ACCENT_COLOR)
+        style.configure('App.TLabelframe.Label', background=BG_COLOR, foreground=FG_COLOR)
+        style.configure('App.TLabel', background=BG_COLOR, foreground=FG_COLOR)
+        style.configure('App.TButton', background=ACCENT_COLOR, foreground="white", bordercolor=ACCENT_COLOR, lightcolor=ACCENT_COLOR, darkcolor=ACCENT_COLOR)
+        style.map('App.TButton', background=[('active', '#005f9e')])
+        style.configure('App.TCheckbutton', background=BG_COLOR, foreground=FG_COLOR, indicatorcolor=ACCENT_COLOR)
+        style.map('App.TCheckbutton', indicatorcolor=[('selected', SUCCESS_COLOR)])
 
     def toggle_server(self):
         if self.server_process:
