@@ -156,9 +156,10 @@ class ServerUI:
         self.log_display.config(state='disabled')
 
     def monitor_cpu(self):
+        process = psutil.Process()
         def cpu_worker():
             while True:
-                cpu_percent = psutil.cpu_percent(interval=1)
+                cpu_percent = process.cpu_percent(interval=1)
                 self.cpu_queue.put(cpu_percent)
 
         threading.Thread(target=cpu_worker, daemon=True).start()
