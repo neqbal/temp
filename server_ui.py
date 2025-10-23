@@ -34,6 +34,16 @@ class ServerUI:
         self.vulnerable_check = ttk.Checkbutton(control_frame, text="Run in Vulnerable Mode", variable=self.vulnerable_mode)
         self.vulnerable_check.grid(row=0, column=2, padx=5, pady=5)
 
+        ttk.Label(control_frame, text="Log Level:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        self.loglevel_var = tk.StringVar(value='INFO')
+        self.loglevel_combo = ttk.Combobox(
+            control_frame, 
+            textvariable=self.loglevel_var, 
+            values=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+            state="readonly"
+        )
+        self.loglevel_combo.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
+
         # Log Frame
         log_frame = ttk.LabelFrame(main_frame, text="Server Logs", padding="10")
         log_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -66,8 +76,9 @@ class ServerUI:
         self.log_message("--- Starting server... ---")
         self.start_stop_button.config(text="Stop Server")
         self.vulnerable_check.config(state='disabled')
+        self.loglevel_combo.config(state='disabled')
 
-        command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.server_cli', '--config', 'configs/server.yaml']
+        command = [sys.executable, '-u', '-m', 'src.pytunnel.cli.server_cli', '--config', 'configs/server.yaml', '--loglevel', self.loglevel_var.get()]
         if self.vulnerable_mode.get():
             command.append('--vulnerable')
 
@@ -113,6 +124,7 @@ class ServerUI:
         self.server_process = None
         self.start_stop_button.config(text="Start Server")
         self.vulnerable_check.config(state='normal')
+        self.loglevel_combo.config(state='readonly')
         self.log_message("--- Server stopped. ---")
 
     def enqueue_output(self, pipe, queue):

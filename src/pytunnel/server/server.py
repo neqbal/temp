@@ -2,6 +2,7 @@ import socket
 import os
 import struct
 import select
+import logging
 from ..common import proto
 from ..common.cookie import CookieManager
 from ..common import crypto
@@ -113,6 +114,7 @@ class Server:
         try:
             plaintext = os.read(self.tun_fd, 4096)
             log.log_info(f"Read {len(plaintext)} bytes from TUN device.")
+            log.debug(f"Packet data (first 64 bytes): {plaintext[:64].hex()}")
 
             # --- ROUTING LOGIC --- #
             # Extract destination IP from the IP header (bytes 16-19)
@@ -247,5 +249,6 @@ class Server:
 
             os.write(self.tun_fd, plaintext)
             log.log_info(f"Wrote {len(plaintext)} bytes to TUN device.")
+            log.debug(f"Packet data (first 64 bytes): {plaintext[:64].hex()}")
         except Exception as e:
             log.log_error(f"Failed to decrypt/write packet from {client_addr}: {e}")

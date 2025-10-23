@@ -5,6 +5,7 @@ import socket
 import os
 import select
 import subprocess
+import logging
 from ..common import crypto
 from ..common import proto
 from ..common import log
@@ -165,6 +166,7 @@ class Client:
                 
                 os.write(self.tun_fd, plaintext)
                 log.log_info(f"Wrote {len(plaintext)} bytes to TUN device.")
+                log.debug(f"Packet data (first 64 bytes): {plaintext[:64].hex()}")
         except Exception as e:
             log.log_error(f"Error handling UDP packet: {e}")
 
@@ -173,6 +175,7 @@ class Client:
         try:
             plaintext = os.read(self.tun_fd, 4096)
             log.log_info(f"Read {len(plaintext)} bytes from TUN device.")
+            log.debug(f"Packet data (first 64 bytes): {plaintext[:64].hex()}")
             
             encrypted_payload = self.encryptor.encrypt(plaintext)
             msg = proto.pack_msg_data(encrypted_payload)
