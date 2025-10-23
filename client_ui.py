@@ -24,16 +24,17 @@ class ClientUI:
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(0, weight=1)
 
         # Control Frame
         control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10")
         control_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
-        control_frame.columnconfigure(1, weight=1)
 
         ttk.Label(control_frame, text="Server Address:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.server_addr_var = tk.StringVar(value=f"{self.server_addr}")
         self.server_addr_entry = ttk.Entry(control_frame, textvariable=self.server_addr_var, width=30)
         self.server_addr_entry.grid(row=0, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
+        control_frame.columnconfigure(1, weight=1)
 
         self.connect_button = ttk.Button(control_frame, text="Connect", command=self.toggle_client)
         self.connect_button.grid(row=1, column=0, padx=5, pady=5)
@@ -41,7 +42,6 @@ class ClientUI:
         # Attack Frame
         attack_frame = ttk.LabelFrame(main_frame, text="Attack Tools", padding="10")
         attack_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=10)
-        attack_frame.columnconfigure(0, weight=1)
 
         self.attack_button = ttk.Button(attack_frame, text="Launch DDoS Flood Attack", command=self.toggle_attack)
         self.attack_button.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)

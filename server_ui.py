@@ -21,11 +21,11 @@ class ServerUI:
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(0, weight=1)
 
         # Control Frame
         control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10")
-        control_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E))
-        control_frame.columnconfigure(1, weight=1)
+        control_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
 
         self.start_stop_button = ttk.Button(control_frame, text="Start Server", command=self.toggle_server)
         self.start_stop_button.grid(row=0, column=0, padx=5, pady=5)
@@ -40,7 +40,7 @@ class ServerUI:
 
         # Log Frame
         log_frame = ttk.LabelFrame(main_frame, text="Server Logs", padding="10")
-        log_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        log_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
         main_frame.rowconfigure(1, weight=1)
@@ -50,7 +50,7 @@ class ServerUI:
 
         # Status Frame
         status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10")
-        status_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        status_frame.grid(row=2, column=0, sticky=(tk.W, tk.E))
         status_frame.columnconfigure(0, weight=1)
 
         self.cpu_label = ttk.Label(status_frame, text="CPU Usage: --%")
