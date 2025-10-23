@@ -220,14 +220,10 @@ class ClientUI:
             self.log_message(line.strip())
         self.root.after(100, self.process_log_queue)
 
-    def insert_colored_text(self, message):
+    def log_message(self, message):
+        print(message)
         self.log_display.config(state='normal')
-
-        # Define color tags
-        self.log_display.tag_config('info', foreground='blue')
-        self.log_display.tag_config('error', foreground='red')
-        self.log_display.tag_config('sent', foreground='orange')
-        self.log_display.tag_config('recv', foreground='green')
+        autoscroll = self.log_display.yview()[1] == 1.0
 
         # Determine color by content
         if "ERROR" in message:
@@ -240,12 +236,10 @@ class ClientUI:
             tag = 'recv'
 
         self.log_display.insert(tk.END, message + '\n', tag)
-        self.log_display.see(tk.END)
-        self.log_display.config(state='disabled')
 
-    def log_message(self, message):
-        print(message)
-        self.insert_colored_text(message)
+        if autoscroll:
+            self.log_display.see(tk.END)
+        self.log_display.config(state='disabled')
 
     def on_closing(self):
         self.stop_client()
