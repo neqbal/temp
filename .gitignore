@@ -12,6 +12,5 @@ venv/
 .Thumbs.db
 
 *.pdf
-*.md
 
 vm/*
