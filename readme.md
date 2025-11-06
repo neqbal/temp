@@ -20,7 +20,7 @@ Focus features for the semester project:
 
 ---
 
-## Recommended repository layout
+## Repository layout
 
 ```
 pytunnel/
@@ -125,7 +125,7 @@ pytunnel/
 Both the server and client VMs are connected through a host bridge 
 client and server ips are different
 
-## Commands & usage (developer quickstart)
+## Commands & usage
 
 **Generate keys:**
 
@@ -159,18 +159,7 @@ sudo python3 -m src.pytunnel.cli.client_cli --config configs/client.yaml
 
 ---
 
-## Developer milestones (suggested)
-
-1. Implement `common/proto.py` and `common/crypto.py` + unit tests.
-2. Implement server that replies with `MSG_COOKIE_CHALLENGE` for `MSG_INIT` (no state).
-3. Implement client two-step init (replies with cookie) and symmetric key derivation.
-4. Implement encrypted `MSG_DATA` <-> TUN loops.
-5. Add `ReplayWindow` and test replay attack.
-6. Add flood metrics and rate-limiter; write demo scripts.
-
----
-
-## Security & limitations (to include in report)
+## Security & limitations
 
 * Simplified handshake (does not fully implement Noise transcript and strong state machine used by production WireGuard).
 * Cookie secret rotation and other advanced DoS protections not implemented by default.
